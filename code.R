@@ -35,7 +35,7 @@ mod <- mvgam(counts ~
              # Automatically compute forecasts for the test data
              newdata = dat_test,
              
-             tred_model = AR(3),
+             trend_model = AR(3),
              
              # Beta observations with independent precisions
              family = Gamma(),
@@ -43,12 +43,13 @@ mod <- mvgam(counts ~
              # cmdstanr is highly recommended over rstan as 
              # it is much more up-to-date with the latest 
              # features in the Stan universe
+             noncentred = TRUE,
              backend = 'cmdstanr')
 summary(mod)
 plot(mod, type = 're')
 
 gratia::draw(mod)
-conditional_effects(mod)
+conditional_effects(mod, points = 0.5)
 conditional_effects(mod,
                     type = 'link')
 
@@ -62,11 +63,8 @@ pp_check(mod,
 
 
 hcs <- hindcast(mod)
-class(hcs)
-?mvgam::`mvgam_forecast-class`
-methods(class = "mvgam_forecast")
 
-layout(matrix(1:4, nrow = 2, byrow = TRUE))
+
 plot(hcs, series = 1)
 plot(hcs, series = 2)
 plot(hcs, series = 3)
@@ -74,22 +72,6 @@ plot(hcs, series = 4)
 plot(hcs, series = 5)
 plot(hcs, series = 6)
 plot(hcs, series = 7)
-
-
-layout(1)
-
-
-
-fcs <- forecast(mod)
-
-plot(fcs, series = 1)
-plot(fcs, series = 2)
-plot(fcs, series = 3)
-plot(fcs, series = 4)
-plot(fcs, series = 5)
-plot(fcs, series = 6)
-plot(fcs, series = 7)
-
 
 
 
@@ -148,3 +130,389 @@ plot_predictions(mod,
                  condition = c('year', 'series'),
                  type = 'link',
                  conf_level = 0.5)
+
+
+DD_seq <- seq(min(dat_train$DDs), 
+                max(dat_train$DDs), 
+                length.out = 20)
+
+
+
+plot_predictions(
+  model = mod, 
+  
+  # Predict over the sequence of times in 'year_seq'
+  newdata = datagrid(DDs = DD_seq,
+                     series = unique),
+  
+  # Use by = 'year' to ensure predictions are averaged
+  # over the sequence of times in year_seq
+  by = 'DDs',
+  
+  # Compute predictions on the link scale
+  type = 'link'
+)
+
+
+plot_comparisons(
+  model = mod, 
+  
+  # Predict over the sequence of times in 'year_seq'
+  newdata = datagrid(DDs = DD_seq,
+                     series = unique),
+  
+  # At each time in 'year_seq', calculate contrasts between
+  # each pair of time series
+  variables = list(series = 'pairwise'),
+  
+  # Plot the difference trends using year as the x-axis
+  by = 'DDs',
+  
+  # Compute predictions on the link scale
+  type = 'link'
+)
+
+
+plot_predictions(mod,
+                 condition = c('DDs', 'series'),
+                 type = 'link',
+                 conf_level = 0.5)
+
+
+
+
+
+
+
+
+mod2 <- mvgam(counts ~
+                
+                # Hierarchical intercepts capture variation in average
+                s(series, bs = "re") +
+                # relative abundances
+                s(DDs, k = 6, bs = 'fs') +
+                s(year, k = 4, bs = 'fs'),
+              
+              # Condition on the training data
+              data = dat_train,
+              
+              # Automatically compute forecasts for the test data
+              newdata = dat_test,
+              
+              trend_model = "None",
+              
+              # Beta observations with independent precisions
+              family = Gamma(),
+              
+              # cmdstanr is highly recommended over rstan as 
+              # it is much more up-to-date with the latest 
+              # features in the Stan universe
+              backend = 'cmdstanr')
+summary(mod2)
+
+gratia::draw(mod2)
+conditional_effects(mod2, points = 0.5)
+conditional_effects(mod2,
+                    type = 'link')
+
+
+marginaleffects::avg_predictions(mod2, variable = 'series')
+pp_check(mod2,
+         type = "ecdf_overlay_grouped",
+         group = "series",
+         ndraws = 50)
+
+
+
+hcs2 <- hindcast(mod2)
+
+plot(hcs2, series = 1)
+plot(hcs2, series = 2)
+plot(hcs2, series = 3)
+plot(hcs2, series = 4)
+plot(hcs2, series = 5)
+plot(hcs2, series = 6)
+plot(hcs2, series = 7)
+
+
+plot(mod2, type = 'forecast', series = 1)
+plot(mod2, type = 'forecast', series = 2)
+plot(mod2, type = 'forecast', series = 3)
+plot(mod2, type = 'forecast', series = 4)
+plot(mod2, type = 'forecast', series = 5)
+plot(mod2, type = 'forecast', series = 6)
+plot(mod2, type = 'forecast', series = 7)
+
+plot_predictions(mod2, by = "time", points = 0.5)
+plot_predictions(mod2, condition = c("time", "series", "series"), points = 0.5)
+
+
+
+plot_predictions(
+  model = mod2, 
+  
+  # Predict over the sequence of times in 'year_seq'
+  newdata = datagrid(year = year_seq,
+                     series = unique),
+  
+  # Use by = 'year' to ensure predictions are averaged
+  # over the sequence of times in year_seq
+  by = 'year',
+  
+  # Compute predictions on the link scale
+  type = 'link'
+)
+
+
+plot_comparisons(
+  model = mod2, 
+  
+  # Predict over the sequence of times in 'year_seq'
+  newdata = datagrid(year = year_seq,
+                     series = unique),
+  
+  # At each time in 'year_seq', calculate contrasts between
+  # each pair of time series
+  variables = list(series = 'pairwise'),
+  
+  # Plot the difference trends using year as the x-axis
+  by = 'year',
+  
+  # Compute predictions on the link scale
+  type = 'link'
+)
+
+
+plot_predictions(mod2,
+                 condition = c('year', 'series'),
+                 type = 'link',
+                 conf_level = 0.5)
+
+
+
+
+plot_predictions(
+  model = mod2, 
+  
+  # Predict over the sequence of times in 'year_seq'
+  newdata = datagrid(DDs = DD_seq,
+                     series = unique),
+  
+  # Use by = 'year' to ensure predictions are averaged
+  # over the sequence of times in year_seq
+  by = 'DDs',
+  
+  # Compute predictions on the link scale
+  type = 'link'
+)
+
+
+plot_comparisons(
+  model = mod2, 
+  
+  # Predict over the sequence of times in 'year_seq'
+  newdata = datagrid(DDs = DD_seq,
+                     series = unique),
+  
+  # At each time in 'year_seq', calculate contrasts between
+  # each pair of time series
+  variables = list(series = 'pairwise'),
+  
+  # Plot the difference trends using year as the x-axis
+  by = 'DDs',
+  
+  # Compute predictions on the link scale
+  type = 'link'
+)
+
+
+plot_predictions(mod2,
+                 condition = c('DDs', 'series'),
+                 type = 'link',
+                 conf_level = 0.5)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+mod3 <- mvgam(counts ~
+                
+                # Hierarchical intercepts capture variation in average
+                s(series, bs = "re") +
+                # relative abundances
+                s(DDs, k = 6, bs = 'fs') +
+                s(year, k = 4, bs = 'fs'),
+              
+              # Condition on the training data
+              data = dat_train,
+              
+              # Automatically compute forecasts for the test data
+              newdata = dat_test,
+              
+              trend_model = AR(1, cor = TRUE),
+              
+              # Beta observations with independent precisions
+              family = Gamma(),
+              
+              # cmdstanr is highly recommended over rstan as 
+              # it is much more up-to-date with the latest 
+              # features in the Stan universe
+              noncentred = TRUE,
+              backend = 'cmdstanr')
+summary(mod3)
+plot(mod3, type = 're')
+
+gratia::draw(mod3)
+conditional_effects(mod3, points = 0.5)
+conditional_effects(mod3,
+                    type = 'link')
+
+
+marginaleffects::avg_predictions(mod3, variable = 'series')
+pp_check(mod3,
+         type = "ecdf_overlay_grouped",
+         group = "series",
+         ndraws = 50)
+
+
+
+hcs3<- hindcast(mod3)
+
+
+plot(hcs3, series = 1)
+plot(hcs3, series = 2)
+plot(hcs3, series = 3)
+plot(hcs3, series = 4)
+plot(hcs3, series = 5)
+plot(hcs3, series = 6)
+plot(hcs3, series = 7)
+
+
+
+plot(mod3, type = 'forecast', series = 1, ylim = c(0, 120))
+plot(mod3, type = 'forecast', series = 2, ylim = c(0, 120))
+plot(mod3, type = 'forecast', series = 3, ylim = c(0, 120))
+plot(mod3, type = 'forecast', series = 4, ylim = c(0, 120))
+plot(mod3, type = 'forecast', series = 5, ylim = c(0, 120))
+plot(mod3, type = 'forecast', series = 6, ylim = c(0, 120))
+plot(mod3, type = 'forecast', series = 7, ylim = c(0, 120))
+
+plot_predictions(mod3, by = "time", points = 0.5)
+plot_predictions(mod3, condition = c("time", "series", "series"), points = 0.5)
+
+
+year_seq <- seq(min(dat_train$year), 
+                max(dat_train$year), 
+                length.out = 20)
+
+plot_predictions(
+  model = mod3, 
+  
+  # Predict over the sequence of times in 'year_seq'
+  newdata = datagrid(year = year_seq,
+                     series = unique),
+  
+  # Use by = 'year' to ensure predictions are averaged
+  # over the sequence of times in year_seq
+  by = 'year',
+  
+  # Compute predictions on the link scale
+  type = 'link'
+)
+
+
+plot_comparisons(
+  model = mod3, 
+  
+  # Predict over the sequence of times in 'year_seq'
+  newdata = datagrid(year = year_seq,
+                     series = unique),
+  
+  # At each time in 'year_seq', calculate contrasts between
+  # each pair of time series
+  variables = list(series = 'pairwise'),
+  
+  # Plot the difference trends using year as the x-axis
+  by = 'year',
+  
+  # Compute predictions on the link scale
+  type = 'link'
+)
+
+
+plot_predictions(mod3,
+                 condition = c('year', 'series'),
+                 type = 'link',
+                 conf_level = 0.5)
+
+
+DD_seq <- seq(min(dat_train$DDs), 
+              max(dat_train$DDs), 
+              length.out = 20)
+
+
+
+plot_predictions(
+  model = mod3, 
+  
+  # Predict over the sequence of times in 'year_seq'
+  newdata = datagrid(DDs = DD_seq,
+                     series = unique),
+  
+  # Use by = 'year' to ensure predictions are averaged
+  # over the sequence of times in year_seq
+  by = 'DDs',
+  
+  # Compute predictions on the link scale
+  type = 'link'
+)
+
+
+plot_comparisons(
+  model = mod3, 
+  
+  # Predict over the sequence of times in 'year_seq'
+  newdata = datagrid(DDs = DD_seq,
+                     series = unique),
+  
+  # At each time in 'year_seq', calculate contrasts between
+  # each pair of time series
+  variables = list(series = 'pairwise'),
+  
+  # Plot the difference trends using year as the x-axis
+  by = 'DDs',
+  
+  # Compute predictions on the link scale
+  type = 'link'
+)
+
+
+plot_predictions(mod3,
+                 condition = c('DDs', 'series'),
+                 type = 'link',
+                 conf_level = 0.5)
+
+loo_compare(mod,
+            mod3)
+
+
+
