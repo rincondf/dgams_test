@@ -11,9 +11,10 @@ blh_regionWA <- blh_regionWA[, -1]
 
 source("DD_clacFool.R")
 
-# DGAMS can take NAs in the response variable, but not in the time or covariates
-# So we'll fill the times and degree days in between seasons. We only use data 
-# from 2016 to 2023, since sample size is too small from previous years. 
+# DGAMs can take NAs in the response variable, but not in time or covariates.
+# So, we'll fill in the times and degree days in between seasons with data. 
+# We only use data from 2016 to 2023, since sample size is too small in previous 
+# years. 
 
 Y2016 <- blh_regionWA[which(blh_regionWA$year == 2016), -c(9, 10)]
 Y2017 <- blh_regionWA[which(blh_regionWA$year == 2017), -c(9, 10)]
@@ -24,7 +25,7 @@ Y2021 <- blh_regionWA[which(blh_regionWA$year == 2021), -c(9, 10)]
 Y2022 <- blh_regionWA[which(blh_regionWA$year == 2022), -c(9, 10)]
 Y2023 <- blh_regionWA[which(blh_regionWA$year == 2023), -c(9, 10)]
 
-# This function fills between-season gaps fro each year
+# This function fills between-season gaps for each year
 
 convi <- function(x, yr) {
   sems <- seq(1, (x$JULIAN[which.min(x$JULIAN)] - 7), 7)
@@ -86,7 +87,7 @@ blh_dat <- rbind(Y2016A,
                  Y2022A,
                  Y2023A)
 
-# Create time variable with julian days starting jan 1, 2026
+# Create time variable with julian days starting jan 1, 2016
 
 blh_dat$time1 <- as.numeric(blh_dat$SURVEY_DATE) - 
   (as.numeric(as.Date("2016-01-01")) - 1)
@@ -94,10 +95,11 @@ blh_dat$time1 <- as.numeric(blh_dat$SURVEY_DATE) -
 # Remove last rows with only NAs
 blh_dat <- blh_dat[-seq(2719, 2802), ]
 
-# Create a "series" factor variable with the regions
+# Create a "series" factor variable with the regions. It must be named 
+# that way.
 blh_dat$series <- as.factor(blh_dat$region)
 
-# Create a time variable with weeks starting jan 1, 2026. This is the time
+# Create a time variable with weeks starting jan 1, 2016. This is the time
 # variable we'll use
 
 semas <- seq(1, length(unique(blh_dat$time1)))
@@ -111,7 +113,7 @@ for(i in 1: length(unique(unique(blh_dat$time1)))) {
 
 
 #------------------------------------------------------------------------------
-# Calculation of degree days in between seasons
+# Calculation of degree days in-between seasons
 #------------------------------------------------------------------------------
 
 # Find unique location-year combinations
@@ -195,7 +197,8 @@ for(i in 1: length(locations_WA$region)) {
 blh_dat$DDs[which(is.na(blh_dat$DDs))] <- blh_dat$DDS[which(is.na(blh_dat$DDs))]
 
 # Cleaning up some unnecessary columns
-blh_dat <- subset(blh_dat, select = -c(region, SURVEY_DATE, LATITUDE, LONGITUDE, DDS))
+blh_dat <- subset(blh_dat, select = -c(region, SURVEY_DATE, LATITUDE, 
+                                       LONGITUDE, DDS))
 
 
 # As some of the regions have missing counts at some time points, they must be 
@@ -208,6 +211,8 @@ blh_dat <- subset(blh_dat, select = -c(region, SURVEY_DATE, LATITUDE, LONGITUDE,
 
 library(dplyr)
 
+# Add rows wherever are missing times
+
 blh_dat <- right_join(blh_dat, expand.grid(
   time = seq(
     min(blh_dat$time),
@@ -217,6 +222,8 @@ blh_dat <- right_join(blh_dat, expand.grid(
                   levels = levels(blh_dat$series)
   )
 ))
+
+# Organize by time
 
 blh_dat <- arrange(blh_dat, blh_dat$time)
 
