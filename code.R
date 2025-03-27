@@ -1,6 +1,8 @@
 
 library(mvgam)
 
+# Checking all series are complete
+
 all(levels(blh_dat$series) %in% 
       unique(blh_dat$series))
 
@@ -37,7 +39,6 @@ mod <- mvgam(counts ~
              
              trend_model = AR(3),
              
-             # Beta observations with independent precisions
              family = Gamma(),
              
              # cmdstanr is highly recommended over rstan as 
@@ -199,7 +200,6 @@ mod2 <- mvgam(counts ~ 0,
               
               trend_model = AR(3),
               
-              # Beta observations with independent precisions
               family = Gamma(),
               
               # cmdstanr is highly recommended over rstan as 
@@ -358,7 +358,7 @@ mod3 <- mvgam(counts ~
               
               trend_model = AR(1, cor = TRUE),
               
-              # Beta observations with independent precisions
+              
               family = Gamma(),
               
               # cmdstanr is highly recommended over rstan as 
@@ -526,7 +526,7 @@ mod4 <- mvgam(counts ~
               
               trend_model = "None",
               
-              # Beta observations with independent precisions
+              
               family = Gamma(),
               
               # cmdstanr is highly recommended over rstan as 
@@ -675,7 +675,7 @@ mod5 <- mvgam(counts ~ s(series, bs = "re"),
               
               trend_model = AR(1, cor = TRUE),
               
-              # Beta observations with independent precisions
+              
               family = Gamma(),
               
               # cmdstanr is highly recommended over rstan as 
@@ -824,7 +824,7 @@ mod6 <- mvgam(counts ~ s(series, bs = "re"),
              
              trend_model = AR(3),
              
-             # Beta observations with independent precisions
+             
              family = Gamma(),
              
              # cmdstanr is highly recommended over rstan as 
